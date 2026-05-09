@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serial Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            /* Dark Theme (default) */
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-input: #475569;
+            --border: #475569;
+            --border-light: #64748b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+
+            /* Accent Colors */
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
+            --accent-yellow-hover: #d97706;
+
+            /* Terminal Colors */
+            --terminal-bg: #000000;
+            --terminal-text: #00ff88;
+            --terminal-text-sent: #60a5fa;
+            --terminal-text-received: #34d399;
+            --terminal-text-meta: #9ca3af;
+
+            /* Typography */
+            --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+
+            /* Spacing */
+            --spacing-xs: 2px;
+            --spacing-sm: 4px;
+            --spacing-md: 8px;
+            --spacing-lg: 12px;
+            --spacing-xl: 16px;
+            --spacing-2xl: 24px;
+
+            /* Border Radius */
+            --radius-sm: 3px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+            /* Animation */
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.25s ease;
+        }
+
+        /* ===== Light Theme ===== */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --bg-input: #e2e8f0;
+            --border: #cbd5e1;
+            --border-light: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+
+            --terminal-bg: #ffffff;
+            --terminal-text: #059669;
+            --terminal-text-sent: #2563eb;
+            --terminal-text-received: #059669;
+            --terminal-text-meta: #6b7280;
+        }
+
+        /* ===== Base Styles ===== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.4;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: var(--spacing-md) var(--spacing-xl);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .header-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            margin-right: var(--spacing-md);
+        }
+
+        .menu-icon {
+            display: block;
+            width: 16px;
+            height: 2px;
+            background: var(--text-secondary);
+            margin: 2px 0;
+            transition: var(--transition-normal);
+        }
+
+        .app-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xl);
+        }
+
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-normal);
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-input);
+        }
+
+        .theme-icon {
+            display: block;
+            width: 16px;
+            height: 16px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: var(--transition-normal);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-red);
+        }
+
+        .status-indicator.connected {
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-text {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: flex-end;
+        }
+
+        /* ===== Main Content ===== */
+        .main-content {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ===== Sidebar ===== */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            height: 100%;
+            z-index: 50;
+        }
+
+        .sidebar-content {
+            padding: var(--spacing-xl);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-2xl);
+        }
+
+        .config-section {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-md);
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .config-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .config-select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            outline: none;
+            transition: var(--transition-fast);
+            cursor: pointer;
+        }
+
+        .config-select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 1px var(--accent-blue);
+        }
+
+        /* ===== Statistics ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-md);
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 2px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ===== Buttons ===== */
+        .btn {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-family: var(--font-ui);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            line-height: 1;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--bg-input);
+            border-color: var(--border-light);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-small {
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 11px;
+        }
+
+        .btn-icon {
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            font-size: 16px;
+            font-weight: 400;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-blue-hover);
+            border-color: var(--accent-blue-hover);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border-color: var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--bg-tertiary);
+            border-color: var(--border-light);
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: var(--accent-red-hover);
+            border-color: var(--accent-red-hover);
+        }
+
+        .btn[data-active="true"] {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: white;
+        }
+
+        .btn[data-active="true"]:hover:not(:disabled) {
+            background: var(--accent-green-hover);
+            border-color: var(--accent-green-hover);
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        /* ===== Terminal Area ===== */
+        .terminal-area {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .terminal-output-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--terminal-bg);
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md) var(--spacing-xl);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .terminal-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .buffer-info {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .terminal-output {
+            flex: 1;
+            padding: var(--spacing-xl);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.5;
+            overflow-y: auto;
+            color: var(--terminal-text);
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* Custom Scrollbar */
+        .terminal-output::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .terminal-output::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .terminal-output::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .terminal-output::-webkit-scrollbar-thumb:hover {
+            background: var(--border-light);
+        }
+
+        /* ===== Input Area ===== */
+        .terminal-input-area {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: var(--spacing-xl);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+            flex-shrink: 0;
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .input-mode-selector {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .mode-label {
+            font-size: 11px;
+        }
+
+        .mode-select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--text-primary);
+            font-family: var(--font-ui);
+            font-size: 11px;
+            cursor: pointer;
+            outline: none;
+            min-width: 80px;
+        }
+
+        .input-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .input-field {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        textarea {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            resize: none;
+            outline: none;
+            transition: var(--transition-fast);
+            min-height: 60px;
+            max-height: 120px;
+            line-height: 1.4;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 1px var(--accent-blue);
+        }
+
+        .input-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .send-options {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .hint-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        /* ===== Footer ===== */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md) var(--spacing-xl);
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            min-height: 48px;
+        }
+
+        .footer-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xl);
+        }
+
+        .footer-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 11px;
+        }
+
+        .footer-label {
+            color: var(--text-muted);
+        }
+
+        .footer-value {
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+
+        .footer-status {
+            display: flex;
+            align-items: center;
+        }
+
+        /* ===== Terminal Message Styles ===== */
+        .terminal-message {
+            margin-bottom: 2px;
+            font-size: 12px;
+        }
+
+        .terminal-timestamp {
+            color: var(--terminal-text-meta);
+            font-size: 10px;
+            margin-right: var(--spacing-sm);
+        }
+
+        .terminal-sent {
+            color: var(--terminal-text-sent);
+        }
+
+        .terminal-received {
+            color: var(--terminal-text-received);
+        }
+
+        /* ===== Responsive Design ===== */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 260px 1fr;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: 280px;
+                height: 100%;
+                z-index: 1000;
+                transition: left var(--transition-normal);
+                box-shadow: var(--shadow-lg);
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .header-main {
+                margin-bottom: var(--spacing-sm);
+            }
+
+            .header-actions {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                font-size: 12px;
+            }
+
+            .header {
+                padding: var(--spacing-md);
+            }
+
+            .app-title {
+                font-size: 14px;
+            }
+
+            .header-controls {
+                gap: var(--spacing-md);
+            }
+
+            .header-actions {
+                flex-wrap: wrap;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+
+            .sidebar-content {
+                padding: var(--spacing-lg);
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .stat-card {
+                padding: var(--spacing-sm);
+            }
+
+            .stat-value {
+                font-size: 12px;
+            }
+
+            .stat-label {
+                font-size: 9px;
+            }
+
+            .terminal-header,
+            .terminal-input-area {
+                padding: var(--spacing-md);
+            }
+
+            .terminal-output {
+                padding: var(--spacing-md);
+                font-size: 11px;
+            }
+
+            .footer {
+                padding: var(--spacing-md);
+                flex-direction: column;
+                gap: var(--spacing-md);
+                align-items: stretch;
+            }
+
+            .footer-info {
+                justify-content: space-between;
+            }
+
+            .footer-status {
+                justify-content: center;
+            }
+
+            .btn {
+                padding: var(--spacing-sm) var(--spacing-md);
+                font-size: 11px;
+            }
+
+            .btn-small {
+                padding: var(--spacing-xs) var(--spacing-sm);
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                font-size: 11px;
+            }
+
+            .header {
+                padding: var(--spacing-sm);
+            }
+
+            .app-title {
+                font-size: 13px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .config-grid {
+                gap: var(--spacing-sm);
+            }
+
+            .config-select {
+                padding: var(--spacing-sm);
+                font-size: 11px;
+            }
+
+            .terminal-info {
+                gap: var(--spacing-md);
+            }
+
+            .buffer-info {
+                font-size: 10px;
+            }
+
+            .input-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: var(--spacing-sm);
+            }
+
+            .input-actions {
+                justify-content: flex-end;
+            }
+
+            .input-footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: var(--spacing-sm);
+            }
+
+            .send-options {
+                order: 2;
+            }
+
+            .hint-text {
+                order: 1;
+                text-align: left;
+            }
+
+            .footer-item {
+                font-size: 10px;
+            }
+
+            .btn {
+                padding: var(--spacing-xs) var(--spacing-sm);
+                font-size: 10px;
+                min-height: 28px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .header-actions {
+                gap: var(--spacing-sm);
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* ===== High Contrast Mode Support ===== */
+        @media (prefers-contrast: high) {
+            :root {
+                --border: #000000;
+                --text-primary: #000000;
+                --terminal-text: #000000;
+            }
+
+            [data-theme="light"] {
+                --border: #000000;
+                --text-primary: #000000;
+                --terminal-text: #000000;
+            }
+        }
+
+        /* ===== Print Styles ===== */
+        @media print {
+
+            .header,
+            .sidebar,
+            .terminal-input-area,
+            .footer {
+                display: none;
+            }
+
+            .terminal-output-container {
+                height: auto;
+                overflow: visible;
+            }
+
+            .terminal-output {
+                color: #000000;
+                white-space: normal;
+            }
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: var(--accent-blue);
+        }
+    </style>
+</head>
+
+<body class="theme-dark" data-theme="dark">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-main">
+                <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+                    <span class="menu-icon"></span>
+                    <span class="menu-icon"></span>
+                    <span class="menu-icon"></span>
+                </button>
+                <h1 class="app-title">Serial Terminal</h1>
+                <div class="header-controls">
+                    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+                        <span class="theme-icon"></span>
+                    </button>
+                    <div class="connection-status">
+                        <div class="status-indicator" id="statusIndicator"></div>
+                        <span id="statusText" class="status-text">Отключено</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button id="connectBtn" class="btn btn-primary btn-small">Подключить</button>
+                <button id="disconnectBtn" class="btn btn-danger btn-small" disabled>Отключить</button>
+                <button id="clearBtn" class="btn btn-secondary btn-small">Очистить</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-content">
+                    <section class="config-section">
+                        <h2 class="section-title">Настройки подключения</h2>
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label class="config-label">Скорость</label>
+                                <select id="baudRate" class="config-select">
+                                    <option value="9600">9600</option>
+                                    <option value="19200">19200</option>
+                                    <option value="38400">38400</option>
+                                    <option value="57600">57600</option>
+                                    <option value="115200" selected>115200</option>
+                                    <option value="230400">230400</option>
+                                    <option value="460800">460800</option>
+                                    <option value="921600">921600</option>
+                                </select>
+                            </div>
+                            <div class="config-item">
+                                <label class="config-label">Биты данных</label>
+                                <select id="dataBits" class="config-select">
+                                    <option value="7">7</option>
+                                    <option value="8" selected>8</option>
+                                </select>
+                            </div>
+                            <div class="config-item">
+                                <label class="config-label">Стоп-биты</label>
+                                <select id="stopBits" class="config-select">
+                                    <option value="1" selected>1</option>
+                                    <option value="2">2</option>
+                                </select>
+                            </div>
+                            <div class="config-item">
+                                <label class="config-label">Чётность</label>
+                                <select id="parity" class="config-select">
+                                    <option value="none" selected>Нет</option>
+                                    <option value="even">Чётная</option>
+                                    <option value="odd">Нечётная</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="config-section">
+                        <h2 class="section-title">Статистика</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="receivedCount">0</div>
+                                <div class="stat-label">Принято</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="sentCount">0</div>
+                                <div class="stat-label">Отправлено</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="connectionTime">0:00</div>
+                                <div class="stat-label">Время</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="baudRateValue">115200</div>
+                                <div class="stat-label">Скорость</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="config-section">
+                        <h2 class="section-title">Управление</h2>
+                        <div class="button-group">
+                            <button id="autoScrollBtn" class="btn btn-secondary btn-small" data-active="true">
+                                <span>Автопрокрутка</span>
+                            </button>
+                            <button id="showTimestampBtn" class="btn btn-secondary btn-small" data-active="true">
+                                <span>Время</span>
+                            </button>
+                            <button id="hexViewBtn" class="btn btn-secondary btn-small">
+                                <span>HEX</span>
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </aside>
+
+            <!-- Terminal Area -->
+            <section class="terminal-area">
+                <div class="terminal-output-container">
+                    <div class="terminal-header">
+                        <div class="terminal-info">
+                            <span>Терминал</span>
+                            <span id="bufferSize" class="buffer-info">0/5000 строк</span>
+                        </div>
+                        <div class="terminal-controls">
+                            <button id="clearTerminalBtn" class="btn btn-secondary btn-icon" title="Очистить терминал">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                    <div class="terminal-output" id="terminal"></div>
+                </div>
+
+                <div class="terminal-input-area">
+                    <div class="input-header">
+                        <div class="input-mode-selector">
+                            <label class="mode-label">Режим:</label>
+                            <select id="inputMode" class="mode-select">
+                                <option value="text">Текст</option>
+                                <option value="hex">HEX</option>
+                            </select>
+                        </div>
+                        <div class="input-actions">
+                            <button id="clearInputBtn" class="btn btn-secondary btn-small">Очистить</button>
+                            <button id="sendBtn" class="btn btn-primary btn-small" disabled>Отправить</button>
+                        </div>
+                    </div>
+
+                    <div class="input-field">
+                        <textarea id="inputText" placeholder="Введите текст для отправки..." rows="2"
+                            spellcheck="false"></textarea>
+                    </div>
+
+                    <div class="input-footer">
+                        <div class="send-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="addNewlineCheckbox" checked>
+                                <span>Добавить \n</span>
+                            </label>
+                        </div>
+                        <div class="hint-text">
+                            Ctrl+Enter для отправки
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-info">
+                <div class="footer-item">
+                    <span class="footer-label">Порт:</span>
+                    <span id="portInfo" class="footer-value">—</span>
+                </div>
+                <div class="footer-item">
+                    <span class="footer-label">Версия:</span>
+                    <span class="footer-value">1.0.0</span>
+                </div>
+            </div>
+            <div class="footer-status">
+                <div class="footer-item">
+                    <span id="connectionStatus" class="status-text">Готов к подключению</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        class SerialTerminal {
+            constructor() {
+                this.port = null;
+                this.reader = null;
+                this.writer = null;
+                this.isConnected = false;
+                this.receivedBytes = 0;
+                this.sentBytes = 0;
+                this.connectionStartTime = null;
+                this.connectionTimer = null;
+
+                // Конфигурация
+                this.autoScroll = true;
+                this.showTimestamp = true;
+                this.hexView = false;
+                this.maxLines = 5000;
+                this.currentLines = 0;
+
+                // Флаги состояния
+                this.isConnecting = false;
+                this.isDisconnecting = false;
+                this.readLoopActive = false;
+                this.shouldRead = true;
+
+                // Буферизация входящих данных
+                this.receiveBuffer = '';
+                this.flushTimeout = null;
+                this.flushDelay = 100;
+
+                // Инициализация
+                this.initElements();
+                this.initEventListeners();
+                this.loadSettings();
+                this.updateUI();
+                this.setupResizeHandler();
+            }
+
+            initElements() {
+                this.elements = {
+                    // Кнопки управления
+                    connectBtn: document.getElementById('connectBtn'),
+                    disconnectBtn: document.getElementById('disconnectBtn'),
+                    sendBtn: document.getElementById('sendBtn'),
+                    clearBtn: document.getElementById('clearBtn'),
+                    clearInputBtn: document.getElementById('clearInputBtn'),
+                    clearTerminalBtn: document.getElementById('clearTerminalBtn'),
+
+                    // Новый чекбокс (вместо кнопки sendNewlineBtn)
+                    addNewlineCheckbox: document.getElementById('addNewlineCheckbox'),
+
+                    // Переключатели
+                    autoScrollBtn: document.getElementById('autoScrollBtn'),
+                    showTimestampBtn: document.getElementById('showTimestampBtn'),
+                    hexViewBtn: document.getElementById('hexViewBtn'),
+                    themeToggle: document.getElementById('themeToggle'),
+                    menuToggle: document.getElementById('menuToggle'),
+
+                    // Терминал
+                    terminal: document.getElementById('terminal'),
+                    inputText: document.getElementById('inputText'),
+
+                    // Статус
+                    statusIndicator: document.getElementById('statusIndicator'),
+                    statusText: document.getElementById('statusText'),
+                    connectionStatus: document.getElementById('connectionStatus'),
+
+                    // Конфигурация
+                    baudRate: document.getElementById('baudRate'),
+                    dataBits: document.getElementById('dataBits'),
+                    stopBits: document.getElementById('stopBits'),
+                    parity: document.getElementById('parity'),
+                    inputMode: document.getElementById('inputMode'),
+
+                    // Статистика
+                    receivedCount: document.getElementById('receivedCount'),
+                    sentCount: document.getElementById('sentCount'),
+                    connectionTime: document.getElementById('connectionTime'),
+                    baudRateValue: document.getElementById('baudRateValue'),
+                    portInfo: document.getElementById('portInfo'),
+                    bufferSize: document.getElementById('bufferSize'),
+
+                    // Боковое меню
+                    sidebar: document.getElementById('sidebar')
+                };
+            }
+
+            initEventListeners() {
+                this.elements.connectBtn.addEventListener('click', () => this.connect());
+                this.elements.disconnectBtn.addEventListener('click', () => this.disconnect());
+
+                // Используем состояние чекбокса при отправке
+                this.elements.sendBtn.addEventListener('click', () => this.sendData(this.elements.addNewlineCheckbox.checked));
+
+                this.elements.clearBtn.addEventListener('click', () => this.clearTerminal());
+                this.elements.clearInputBtn.addEventListener('click', () => this.clearInput());
+                this.elements.clearTerminalBtn.addEventListener('click', () => this.clearTerminal());
+
+                // Переключатели
+                this.elements.autoScrollBtn.addEventListener('click', () => this.toggleAutoScroll());
+                this.elements.showTimestampBtn.addEventListener('click', () => this.toggleTimestamp());
+                this.elements.hexViewBtn.addEventListener('click', () => this.toggleHexView());
+                this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
+                this.elements.menuToggle.addEventListener('click', () => this.toggleSidebar());
+
+                // Ввод данных (Ctrl+Enter) – тоже используем чекбокс
+                this.elements.inputText.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        e.preventDefault();
+                        this.sendData(this.elements.addNewlineCheckbox.checked);
+                    }
+                });
+
+                // Изменение конфигурации
+                this.elements.baudRate.addEventListener('change', () => this.updateBaudRateDisplay());
+                this.elements.inputMode.addEventListener('change', () => this.updateInputMode());
+
+                // Закрытие бокового меню при клике вне его
+                document.addEventListener('click', (e) => {
+                    if (this.elements.sidebar.classList.contains('active') &&
+                        !this.elements.sidebar.contains(e.target) &&
+                        !this.elements.menuToggle.contains(e.target)) {
+                        this.elements.sidebar.classList.remove('active');
+                    }
+                });
+            }
+
+            setupResizeHandler() {
+                let resizeTimeout;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        this.handleResize();
+                    }, 100);
+                });
+            }
+
+            handleResize() {
+                if (window.innerWidth >= 992 && this.elements.sidebar.classList.contains('active')) {
+                    this.elements.sidebar.classList.remove('active');
+                }
+            }
+
+            loadSettings() {
+                try {
+                    const settings = JSON.parse(localStorage.getItem('serialTerminalSettings') || '{}');
+
+                    this.autoScroll = settings.autoScroll !== false;
+                    this.showTimestamp = settings.showTimestamp !== false;
+                    this.hexView = settings.hexView || false;
+
+                    // Загружаем тему
+                    const savedTheme = localStorage.getItem('terminalTheme');
+                    if (savedTheme) {
+                        document.body.setAttribute('data-theme', savedTheme);
+                        document.body.className = savedTheme === 'dark' ? 'theme-dark' : 'theme-light';
+                        this.updateThemeToggle(savedTheme);
+                    }
+
+                    // Обновляем UI
+                    this.updateToggleButtons();
+
+                } catch (error) {
+                    console.warn('Failed to load settings:', error);
+                }
+            }
+
+            saveSettings() {
+                try {
+                    const settings = {
+                        autoScroll: this.autoScroll,
+                        showTimestamp: this.showTimestamp,
+                        hexView: this.hexView
+                    };
+                    localStorage.setItem('serialTerminalSettings', JSON.stringify(settings));
+                } catch (error) {
+                    console.warn('Failed to save settings:', error);
+                }
+            }
+
+            async connect() {
+                if (this.isConnecting || this.isConnected) return;
+
+                this.isConnecting = true;
+                this.updateUI();
+
+                try {
+                    if (!('serial' in navigator)) {
+                        this.showMessage('Web Serial API не поддерживается в этом браузере', 'error');
+                        this.resetConnectionState();
+                        return;
+                    }
+
+                    // Запрос порта
+                    this.port = await navigator.serial.requestPort();
+
+                    // Конфигурация подключения
+                    const options = {
+                        baudRate: parseInt(this.elements.baudRate.value),
+                        dataBits: parseInt(this.elements.dataBits.value),
+                        stopBits: parseInt(this.elements.stopBits.value),
+                        parity: this.elements.parity.value,
+                        bufferSize: 65536
+                    };
+
+                    // Открываем порт
+                    await this.port.open(options);
+
+                    // Сброс флага чтения
+                    this.shouldRead = true;
+
+                    // Обновление состояния
+                    this.isConnected = true;
+                    this.connectionStartTime = new Date();
+                    this.startConnectionTimer();
+
+                    // Информация о порте
+                    const portInfo = this.port.getInfo();
+                    this.elements.portInfo.textContent = portInfo.usbProductId ?
+                        `PID: ${portInfo.usbProductId}` :
+                        (portInfo.usbVendorId ? `VID: ${portInfo.usbVendorId}` : '—');
+
+                    // Обновление UI
+                    this.updateUI();
+                    this.showMessage('Подключено к последовательному порту', 'success');
+
+                    // Начало чтения
+                    this.startReading();
+
+                } catch (error) {
+                    console.error('Connection error:', error);
+
+                    if (error.name === 'NotFoundError') {
+                        this.showMessage('Порт не найден', 'error');
+                    } else if (error.name === 'InvalidStateError') {
+                        this.showMessage('Порт уже открыт', 'error');
+                    } else if (error.name === 'NetworkError') {
+                        this.showMessage('Ошибка сети', 'error');
+                    } else if (error.name === 'SecurityError') {
+                        this.showMessage('Ошибка безопасности', 'error');
+                    } else {
+                        this.showMessage(`Ошибка подключения: ${error.message}`, 'error');
+                    }
+
+                    // Сбрасываем состояние
+                    this.resetConnectionState();
+
+                } finally {
+                    this.isConnecting = false;
+                    this.updateUI();
+                }
+            }
+
+            async disconnect() {
+                if (this.isDisconnecting || !this.isConnected) return;
+
+                this.isDisconnecting = true;
+                this.updateUI();
+
+                try {
+                    // Останавливаем таймер соединения
+                    if (this.connectionTimer) {
+                        clearInterval(this.connectionTimer);
+                        this.connectionTimer = null;
+                    }
+
+                    // Очищаем буфер и таймер вывода
+                    this.cancelFlush();
+                    this.receiveBuffer = '';
+
+                    // Останавливаем чтение
+                    this.shouldRead = false;
+
+                    // Закрываем writer если он активен
+                    await this.closeWriter();
+
+                    // Отменяем reader если он активен
+                    await this.closeReader();
+
+                    // Закрываем порт
+                    await this.closePort();
+
+                    this.showMessage('Соединение закрыто', 'info');
+
+                } catch (error) {
+                    console.error('Disconnect error:', error);
+                    this.showMessage(`Ошибка отключения: ${error.message}`, 'error');
+
+                } finally {
+                    // ВАЖНО: Всегда сбрасываем состояние в finally
+                    this.resetConnectionState();
+                    this.isDisconnecting = false;
+                    this.updateUI();
+                }
+            }
+
+            async closeWriter() {
+                if (this.writer) {
+                    try {
+                        // Получаем текущий writer
+                        const writer = this.writer;
+                        this.writer = null;
+
+                        // Закрываем writer
+                        await writer.close();
+                        await writer.closed;
+
+                        console.log('Writer closed successfully');
+                    } catch (error) {
+                        console.warn('Error closing writer:', error);
+                    }
+                }
+            }
+
+            async closeReader() {
+                if (this.reader) {
+                    try {
+                        // Отменяем текущий reader
+                        const reader = this.reader;
+                        this.reader = null;
+
+                        reader.cancel();
+
+                        // Ждем завершения
+                        await reader.closed.catch(() => {
+                            // Ожидаем, что reader.cancel() вызовет ошибку
+                        });
+
+                        // Освобождаем лок
+                        reader.releaseLock();
+
+                        console.log('Reader closed successfully');
+                    } catch (error) {
+                        console.warn('Error closing reader:', error);
+                    }
+                }
+            }
+
+            async closePort() {
+                if (this.port) {
+                    try {
+                        // Сохраняем ссылку на порт
+                        const port = this.port;
+                        this.port = null;
+
+                        // Закрываем порт
+                        await port.close();
+
+                        console.log('Port closed successfully');
+                    } catch (error) {
+                        console.warn('Error closing port:', error);
+
+                        // Если порт не закрывается, принудительно сбрасываем состояние
+                        if (error.name === 'InvalidStateError') {
+                            console.warn('Port was already closed or in invalid state');
+                        }
+                    }
+                }
+            }
+
+            resetConnectionState() {
+                // ВАЖНО: Всегда сбрасываем isConnected в false
+                this.isConnected = false;
+                this.isConnecting = false;
+                this.isDisconnecting = false;
+                this.shouldRead = false;
+                this.connectionStartTime = null;
+
+                // Очищаем ссылки
+                this.port = null;
+                this.reader = null;
+                this.writer = null;
+
+                // Останавливаем таймер
+                if (this.connectionTimer) {
+                    clearInterval(this.connectionTimer);
+                    this.connectionTimer = null;
+                }
+
+                console.log('Connection state reset');
+            }
+
+            async startReading() {
+                if (!this.port || !this.port.readable || !this.shouldRead) return;
+
+                const textDecoder = new TextDecoder();
+
+                try {
+                    while (this.shouldRead && this.port && this.port.readable) {
+                        try {
+                            this.reader = this.port.readable.getReader();
+
+                            while (this.shouldRead) {
+                                const { value, done } = await this.reader.read();
+
+                                if (done) {
+                                    console.log('Reading done');
+                                    const remainder = textDecoder.decode();
+                                    if (remainder) {
+                                        this.processIncomingRemainder(remainder);
+                                    }
+                                    break;
+                                }
+
+                                if (value && value.length > 0) {
+                                    this.receivedBytes += value.length;
+                                    this.elements.receivedCount.textContent = this.formatNumber(this.receivedBytes);
+                                    this.processIncomingData(value, textDecoder);
+                                }
+                            }
+
+                        } catch (error) {
+                            if (error.name === 'InterruptedError') {
+                                console.log('Reading interrupted normally');
+                                break;
+                            } else if (error.name === 'NetworkError') {
+                                this.showMessage('Ошибка сети при чтении', 'error');
+                                break;
+                            } else {
+                                console.error('Read error:', error);
+                                this.showMessage(`Ошибка чтения: ${error.message}`, 'error');
+                                break;
+                            }
+                        } finally {
+                            if (this.reader) {
+                                try {
+                                    this.reader.releaseLock();
+                                } catch (releaseError) {
+                                    console.warn('Error releasing reader lock:', releaseError);
+                                }
+                                this.reader = null;
+                            }
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Read loop error:', error);
+                } finally {
+                    if (this.shouldRead && this.isConnected) {
+                        console.log('Read loop stopped unexpectedly, disconnecting');
+                        this.disconnect();
+                    }
+                }
+            }
+
+            processIncomingData(data, decoder) {
+                if (this.hexView) {
+                    let displayText = '';
+                    for (let i = 0; i < data.length; i++) {
+                        displayText += data[i].toString(16).padStart(2, '0').toUpperCase() + ' ';
+                        if ((i + 1) % 16 === 0) displayText += '\n';
+                    }
+                    if (displayText) this.appendToTerminal(displayText, 'received');
+                    return;
+                }
+
+                const chunk = decoder.decode(data, { stream: true });
+                this.receiveBuffer += chunk;
+
+                const lines = this.receiveBuffer.split('\n');
+                const completeLines = lines.slice(0, -1);
+                const lastPartial = lines[lines.length - 1];
+
+                for (const line of completeLines) {
+                    this.appendToTerminal(line, 'received');
+                }
+
+                this.receiveBuffer = lastPartial;
+
+                if (this.receiveBuffer) {
+                    this.scheduleFlush();
+                } else {
+                    this.cancelFlush();
+                }
+            }
+
+            processIncomingRemainder(remainder) {
+                if (remainder) {
+                    this.appendToTerminal(remainder, 'received');
+                }
+                this.receiveBuffer = '';
+                this.cancelFlush();
+            }
+
+            scheduleFlush() {
+                if (this.flushTimeout) clearTimeout(this.flushTimeout);
+                this.flushTimeout = setTimeout(() => {
+                    if (this.receiveBuffer) {
+                        this.appendToTerminal(this.receiveBuffer, 'received');
+                        this.receiveBuffer = '';
+                    }
+                    this.flushTimeout = null;
+                }, this.flushDelay);
+            }
+
+            cancelFlush() {
+                if (this.flushTimeout) {
+                    clearTimeout(this.flushTimeout);
+                    this.flushTimeout = null;
+                }
+            }
+
+            async sendData(addNewline) {
+                if (!this.port || !this.port.writable || !this.isConnected) {
+                    this.showMessage('Нет подключения к порту', 'error');
+                    return;
+                }
+
+                const inputText = this.elements.inputText.value;
+                if (!inputText.trim()) return;
+
+                try {
+                    let data;
+                    let displayText;
+
+                    if (this.elements.inputMode.value === 'hex') {
+                        const hexString = inputText.replace(/\s+/g, '');
+                        if (!/^[0-9A-Fa-f]+$/.test(hexString)) {
+                            throw new Error('Неверный HEX формат');
+                        }
+
+                        if (hexString.length % 2 !== 0) {
+                            throw new Error('HEX строка должна иметь четную длину');
+                        }
+
+                        data = new Uint8Array(hexString.length / 2);
+                        for (let i = 0; i < data.length; i++) {
+                            data[i] = parseInt(hexString.substr(i * 2, 2), 16);
+                        }
+
+                        displayText = `[HEX] ${hexString.toUpperCase()}`;
+                    } else {
+                        const text = addNewline ? inputText + '\n' : inputText;
+                        const encoder = new TextEncoder();
+                        data = encoder.encode(text);
+                        displayText = addNewline ? inputText + '\\n' : inputText;
+                    }
+
+                    this.writer = this.port.writable.getWriter();
+                    await this.writer.write(data);
+
+                    this.sentBytes += data.length;
+                    this.elements.sentCount.textContent = this.formatNumber(this.sentBytes);
+
+                    this.writer.releaseLock();
+                    this.writer = null;
+
+                    this.appendToTerminal(displayText, 'sent');
+
+                    if (!addNewline) {
+                        this.elements.inputText.value = '';
+                    }
+
+                } catch (error) {
+                    console.error('Send error:', error);
+
+                    if (error.name === 'NetworkError') {
+                        this.showMessage('Ошибка сети при отправке', 'error');
+                        this.disconnect();
+                    } else if (error.name === 'InvalidStateError') {
+                        this.showMessage('Порт недоступен для записи', 'error');
+                        this.disconnect();
+                    } else {
+                        this.showMessage(`Ошибка отправки: ${error.message}`, 'error');
+                    }
+
+                    if (this.writer) {
+                        try {
+                            this.writer.releaseLock();
+                        } catch (releaseError) {
+                            console.warn('Error releasing writer:', releaseError);
+                        }
+                        this.writer = null;
+                    }
+                }
+            }
+
+            appendToTerminal(text, type = 'info') {
+                if (this.currentLines >= this.maxLines) {
+                    const lines = this.elements.terminal.children;
+                    const toRemove = Math.min(1000, this.currentLines);
+
+                    for (let i = 0; i < toRemove; i++) {
+                        if (lines[0]) {
+                            this.elements.terminal.removeChild(lines[0]);
+                        }
+                    }
+                    this.currentLines = Math.max(0, this.currentLines - toRemove);
+                }
+
+                const line = document.createElement('div');
+                line.className = 'terminal-message';
+
+                const timestamp = this.showTimestamp ?
+                    `<span class="terminal-timestamp">[${this.getTimeString()}]</span>` : '';
+
+                if (type === 'sent') {
+                    line.innerHTML = `${timestamp}<span class="terminal-sent">→ ${this.escapeHtml(text)}</span>`;
+                } else if (type === 'received') {
+                    line.innerHTML = `${timestamp}<span class="terminal-received">← ${this.escapeHtml(text)}</span>`;
+                } else {
+                    line.innerHTML = `${timestamp}<span class="terminal-meta">${this.escapeHtml(text)}</span>`;
+                }
+
+                this.elements.terminal.appendChild(line);
+                this.currentLines++;
+
+                this.elements.bufferSize.textContent = `${this.currentLines}/${this.maxLines} строк`;
+
+                if (this.autoScroll) {
+                    setTimeout(() => {
+                        this.elements.terminal.scrollTop = this.elements.terminal.scrollHeight;
+                    }, 10);
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            getTimeString() {
+                const now = new Date();
+                return now.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+
+            clearTerminal() {
+                this.cancelFlush();
+                this.receiveBuffer = '';
+                this.elements.terminal.innerHTML = '';
+                this.currentLines = 0;
+                this.elements.bufferSize.textContent = `0/${this.maxLines} строк`;
+                this.showMessage('Терминал очищен', 'info');
+            }
+
+            clearInput() {
+                this.elements.inputText.value = '';
+                this.elements.inputText.focus();
+            }
+
+            updateUI() {
+                // Обновление состояния кнопок – теперь без sendNewlineBtn
+                this.elements.connectBtn.disabled = this.isConnected || this.isConnecting;
+                this.elements.disconnectBtn.disabled = !this.isConnected || this.isDisconnecting;
+                this.elements.sendBtn.disabled = !this.isConnected || this.isConnecting || this.isDisconnecting;
+
+                // Обновление индикатора статуса
+                if (this.isConnecting) {
+                    this.elements.statusIndicator.className = 'status-indicator connecting';
+                    this.elements.statusText.textContent = 'Подключение...';
+                    this.elements.connectionStatus.textContent = 'Подключение...';
+                } else if (this.isConnected) {
+                    this.elements.statusIndicator.className = 'status-indicator connected';
+                    this.elements.statusText.textContent = 'Подключено';
+                    this.elements.connectionStatus.textContent = 'Подключено к порту';
+                } else if (this.isDisconnecting) {
+                    this.elements.statusIndicator.className = 'status-indicator disconnecting';
+                    this.elements.statusText.textContent = 'Отключение...';
+                    this.elements.connectionStatus.textContent = 'Отключение...';
+                } else {
+                    this.elements.statusIndicator.className = 'status-indicator';
+                    this.elements.statusText.textContent = 'Отключено';
+                    this.elements.connectionStatus.textContent = 'Готов к подключению';
+                }
+
+                // Обновление информации о скорости
+                this.updateBaudRateDisplay();
+
+                console.log('UI Update:', {
+                    isConnected: this.isConnected,
+                    isConnecting: this.isConnecting,
+                    isDisconnecting: this.isDisconnecting,
+                    connectBtnDisabled: this.elements.connectBtn.disabled,
+                    disconnectBtnDisabled: this.elements.disconnectBtn.disabled
+                });
+            }
+
+            updateBaudRateDisplay() {
+                this.elements.baudRateValue.textContent = this.elements.baudRate.value;
+            }
+
+            updateInputMode() {
+                const mode = this.elements.inputMode.value;
+                const placeholder = mode === 'hex' ?
+                    'Введите HEX значения (например: 48656C6C6F)' :
+                    'Введите текст для отправки...';
+
+                this.elements.inputText.placeholder = placeholder;
+            }
+
+            toggleAutoScroll() {
+                this.autoScroll = !this.autoScroll;
+                this.elements.autoScrollBtn.dataset.active = this.autoScroll;
+                this.updateToggleButtons();
+                this.saveSettings();
+            }
+
+            toggleTimestamp() {
+                this.showTimestamp = !this.showTimestamp;
+                this.elements.showTimestampBtn.dataset.active = this.showTimestamp;
+                this.updateToggleButtons();
+                this.saveSettings();
+            }
+
+            toggleHexView() {
+                this.hexView = !this.hexView;
+                this.elements.hexViewBtn.dataset.active = this.hexView;
+                this.updateToggleButtons();
+                this.saveSettings();
+            }
+
+            updateToggleButtons() {
+                this.elements.autoScrollBtn.textContent = this.autoScroll ?
+                    'Автопрокрутка ✓' : 'Автопрокрутка';
+
+                this.elements.showTimestampBtn.textContent = this.showTimestamp ?
+                    'Время ✓' : 'Время';
+
+                this.elements.hexViewBtn.textContent = this.hexView ?
+                    'HEX ✓' : 'HEX';
+            }
+
+            toggleTheme() {
+                const currentTheme = document.body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+                document.body.setAttribute('data-theme', newTheme);
+                document.body.className = newTheme === 'dark' ? 'theme-dark' : 'theme-light';
+
+                this.updateThemeToggle(newTheme);
+                localStorage.setItem('terminalTheme', newTheme);
+            }
+
+            updateThemeToggle(theme) {
+                const themeToggle = this.elements.themeToggle;
+                if (theme === 'dark') {
+                    themeToggle.setAttribute('aria-label', 'Переключить на светлую тему');
+                } else {
+                    themeToggle.setAttribute('aria-label', 'Переключить на темную тему');
+                }
+            }
+
+            toggleSidebar() {
+                this.elements.sidebar.classList.toggle('active');
+            }
+
+            startConnectionTimer() {
+                clearInterval(this.connectionTimer);
+
+                this.connectionTimer = setInterval(() => {
+                    if (this.connectionStartTime) {
+                        const now = new Date();
+                        const diff = Math.floor((now - this.connectionStartTime) / 1000);
+                        const minutes = Math.floor(diff / 60);
+                        const seconds = diff % 60;
+                        this.elements.connectionTime.textContent =
+                            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                }, 1000);
+            }
+
+            showMessage(text, type = 'info') {
+                this.appendToTerminal(`${type}: ${text}`, type);
+            }
+
+            formatNumber(num) {
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(1) + 'M';
+                } else if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                }
+                return num.toLocaleString();
+            }
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                window.terminal = new SerialTerminal();
+                console.log('Serial Terminal initialized');
+            } catch (error) {
+                console.error('Failed to initialize terminal:', error);
+                alert('Ошибка инициализации терминала. Пожалуйста, обновите страницу.');
+            }
+        });
+
+        // Обработка закрытия страницы
+        window.addEventListener('beforeunload', (e) => {
+            if (window.terminal && window.terminal.isConnected) {
+                const confirmationMessage = 'У вас есть активное соединение. Вы уверены, что хотите закрыть страницу?';
+
+                e.preventDefault();
+                e.returnValue = confirmationMessage;
+
+                setTimeout(() => {
+                    if (window.terminal && window.terminal.disconnect) {
+                        window.terminal.disconnect().catch(err => {
+                            console.error('Error during page unload disconnect:', err);
+                        });
+                    }
+                }, 100);
+
+                return confirmationMessage;
+            }
+        });
+    </script>
+</body>
+
+</html>
