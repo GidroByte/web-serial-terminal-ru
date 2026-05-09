@@ -1,7 +1,4 @@
 # Web Serial Terminal
-
-[License: MIT](https://opensource.org/licenses/MIT) | [Web Serial API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API)
-
 **Альтернатива PuTTY / minicom / screen в браузере**  
 Работает через Web Serial API, поддерживает UART/RS-232. Не требует установки — просто откройте `.html` файл.
 
