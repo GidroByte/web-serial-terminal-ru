@@ -2,6 +2,7 @@
 **Альтернатива PuTTY / minicom / screen в браузере**  
 Работает через Web Serial API, поддерживает UART/USART/RS-232.
 
+![Демонстрация интерфейса](screenshot.png)
 
 ## Особенности
 
