@@ -11,7 +11,6 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap"
         rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 10H7v-2h5v2zm4 0h-2v-2h2v2zm-4-4H7V8h5v2zm4 0h-2V8h2v2z'/%3E%3C/svg%3E">
-    
     <style>
         /* ===== CSS Variables ===== */
         :root {
@@ -1174,13 +1173,16 @@
             }
 
             init() {
+                // 1. Прячем оригинальный select
                 this.selectElement.style.display = 'none';
 
+                // 2. Создаём контейнер для кастомного селекта
                 this.container = document.createElement('div');
                 this.container.className = 'custom-select';
                 this.selectElement.parentNode.insertBefore(this.container, this.selectElement);
                 this.container.appendChild(this.selectElement);
 
+                // 3. Создаём триггер (видимая часть)
                 this.trigger = document.createElement('div');
                 this.trigger.className = 'custom-select-trigger';
                 this.trigger.innerHTML = `
@@ -1189,12 +1191,15 @@
                 `;
                 this.container.appendChild(this.trigger);
 
+                // 4. Создаём выпадающий список
                 this.dropdown = document.createElement('div');
                 this.dropdown.className = 'custom-select-dropdown';
                 this.container.appendChild(this.dropdown);
 
+                // 5. Заполняем опциями
                 this.updateOptions();
 
+                // 6. Обработчики событий
                 this.trigger.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.toggle();
@@ -1273,21 +1278,25 @@
                 this.connectionStartTime = null;
                 this.connectionTimer = null;
 
+                // Конфигурация
                 this.autoScroll = true;
                 this.showTimestamp = true;
                 this.hexView = false;
                 this.maxLines = 5000;
                 this.currentLines = 0;
 
+                // Флаги состояния
                 this.isConnecting = false;
                 this.isDisconnecting = false;
                 this.readLoopActive = false;
                 this.shouldRead = true;
 
+                // Буферизация входящих данных
                 this.receiveBuffer = '';
                 this.flushTimeout = null;
                 this.flushDelay = 100;
 
+                // Инициализация
                 this.initElements();
                 this.initEventListeners();
                 this.loadSettings();
@@ -1297,38 +1306,53 @@
 
             initElements() {
                 this.elements = {
+                    // Кнопки управления
                     connectBtn: document.getElementById('connectBtn'),
                     disconnectBtn: document.getElementById('disconnectBtn'),
                     sendBtn: document.getElementById('sendBtn'),
                     clearBtn: document.getElementById('clearBtn'),
                     clearInputBtn: document.getElementById('clearInputBtn'),
                     clearTerminalBtn: document.getElementById('clearTerminalBtn'),
+
+                    // Чекбокс добавления \n
                     addNewlineCheckbox: document.getElementById('addNewlineCheckbox'),
+
+                    // Переключатели
                     autoScrollBtn: document.getElementById('autoScrollBtn'),
                     showTimestampBtn: document.getElementById('showTimestampBtn'),
                     hexViewBtn: document.getElementById('hexViewBtn'),
                     themeToggle: document.getElementById('themeToggle'),
                     menuToggle: document.getElementById('menuToggle'),
+
+                    // Терминал
                     terminal: document.getElementById('terminal'),
                     inputText: document.getElementById('inputText'),
+
+                    // Статус
                     statusIndicator: document.getElementById('statusIndicator'),
                     statusText: document.getElementById('statusText'),
                     connectionStatus: document.getElementById('connectionStatus'),
+
+                    // Конфигурация (нативные select, которые будут заменены кастомными)
                     baudRate: document.getElementById('baudRate'),
                     dataBits: document.getElementById('dataBits'),
                     stopBits: document.getElementById('stopBits'),
                     parity: document.getElementById('parity'),
                     inputMode: document.getElementById('inputMode'),
+
+                    // Статистика
                     receivedCount: document.getElementById('receivedCount'),
                     sentCount: document.getElementById('sentCount'),
                     connectionTime: document.getElementById('connectionTime'),
                     baudRateValue: document.getElementById('baudRateValue'),
                     portInfo: document.getElementById('portInfo'),
                     bufferSize: document.getElementById('bufferSize'),
+
+                    // Боковое меню
                     sidebar: document.getElementById('sidebar')
                 };
 
-                // Инициализация кастомных селектов
+                // Инициализация кастомных селектов (замена нативных <select>)
                 this.customSelects = [];
                 const selectElements = [
                     this.elements.baudRate,
@@ -1347,16 +1371,22 @@
             initEventListeners() {
                 this.elements.connectBtn.addEventListener('click', () => this.connect());
                 this.elements.disconnectBtn.addEventListener('click', () => this.disconnect());
+
+                // Используем состояние чекбокса при отправке
                 this.elements.sendBtn.addEventListener('click', () => this.sendData(this.elements.addNewlineCheckbox.checked));
+
                 this.elements.clearBtn.addEventListener('click', () => this.clearTerminal());
                 this.elements.clearInputBtn.addEventListener('click', () => this.clearInput());
                 this.elements.clearTerminalBtn.addEventListener('click', () => this.clearTerminal());
+
+                // Переключатели
                 this.elements.autoScrollBtn.addEventListener('click', () => this.toggleAutoScroll());
                 this.elements.showTimestampBtn.addEventListener('click', () => this.toggleTimestamp());
                 this.elements.hexViewBtn.addEventListener('click', () => this.toggleHexView());
                 this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
                 this.elements.menuToggle.addEventListener('click', () => this.toggleSidebar());
 
+                // Ввод данных (Ctrl+Enter) – тоже используем чекбокс
                 this.elements.inputText.addEventListener('keydown', (e) => {
                     if (e.ctrlKey && e.key === 'Enter') {
                         e.preventDefault();
@@ -1364,9 +1394,11 @@
                     }
                 });
 
+                // Изменение конфигурации
                 this.elements.baudRate.addEventListener('change', () => this.updateBaudRateDisplay());
                 this.elements.inputMode.addEventListener('change', () => this.updateInputMode());
 
+                // Закрытие бокового меню при клике вне его
                 document.addEventListener('click', (e) => {
                     if (this.elements.sidebar.classList.contains('active') &&
                         !this.elements.sidebar.contains(e.target) &&
@@ -1395,16 +1427,22 @@
             loadSettings() {
                 try {
                     const settings = JSON.parse(localStorage.getItem('serialTerminalSettings') || '{}');
+
                     this.autoScroll = settings.autoScroll !== false;
                     this.showTimestamp = settings.showTimestamp !== false;
                     this.hexView = settings.hexView || false;
+
+                    // Загружаем тему
                     const savedTheme = localStorage.getItem('terminalTheme');
                     if (savedTheme) {
                         document.body.setAttribute('data-theme', savedTheme);
                         document.body.className = savedTheme === 'dark' ? 'theme-dark' : 'theme-light';
                         this.updateThemeToggle(savedTheme);
                     }
+
+                    // Обновляем UI
                     this.updateToggleButtons();
+
                 } catch (error) {
                     console.warn('Failed to load settings:', error);
                 }
@@ -1425,15 +1463,21 @@
 
             async connect() {
                 if (this.isConnecting || this.isConnected) return;
+
                 this.isConnecting = true;
                 this.updateUI();
+
                 try {
                     if (!('serial' in navigator)) {
                         this.showMessage('Web Serial API не поддерживается в этом браузере', 'error');
                         this.resetConnectionState();
                         return;
                     }
+
+                    // Запрос порта
                     this.port = await navigator.serial.requestPort();
+
+                    // Конфигурация подключения
                     const options = {
                         baudRate: parseInt(this.elements.baudRate.value),
                         dataBits: parseInt(this.elements.dataBits.value),
@@ -1441,26 +1485,49 @@
                         parity: this.elements.parity.value,
                         bufferSize: 65536
                     };
+
+                    // Открываем порт
                     await this.port.open(options);
+
+                    // Сброс флага чтения
                     this.shouldRead = true;
+
+                    // Обновление состояния
                     this.isConnected = true;
                     this.connectionStartTime = new Date();
                     this.startConnectionTimer();
+
+                    // Информация о порте
                     const portInfo = this.port.getInfo();
                     this.elements.portInfo.textContent = portInfo.usbProductId ?
                         `PID: ${portInfo.usbProductId}` :
                         (portInfo.usbVendorId ? `VID: ${portInfo.usbVendorId}` : '—');
+
+                    // Обновление UI
                     this.updateUI();
                     this.showMessage('Подключено к последовательному порту', 'success');
+
+                    // Начало чтения
                     this.startReading();
+
                 } catch (error) {
                     console.error('Connection error:', error);
-                    if (error.name === 'NotFoundError') this.showMessage('Порт не найден', 'error');
-                    else if (error.name === 'InvalidStateError') this.showMessage('Порт уже открыт', 'error');
-                    else if (error.name === 'NetworkError') this.showMessage('Ошибка сети', 'error');
-                    else if (error.name === 'SecurityError') this.showMessage('Ошибка безопасности', 'error');
-                    else this.showMessage(`Ошибка подключения: ${error.message}`, 'error');
+
+                    if (error.name === 'NotFoundError') {
+                        this.showMessage('Порт не найден', 'error');
+                    } else if (error.name === 'InvalidStateError') {
+                        this.showMessage('Порт уже открыт', 'error');
+                    } else if (error.name === 'NetworkError') {
+                        this.showMessage('Ошибка сети', 'error');
+                    } else if (error.name === 'SecurityError') {
+                        this.showMessage('Ошибка безопасности', 'error');
+                    } else {
+                        this.showMessage(`Ошибка подключения: ${error.message}`, 'error');
+                    }
+
+                    // Сбрасываем состояние
                     this.resetConnectionState();
+
                 } finally {
                     this.isConnecting = false;
                     this.updateUI();
@@ -1469,21 +1536,41 @@
 
             async disconnect() {
                 if (this.isDisconnecting || !this.isConnected) return;
+
                 this.isDisconnecting = true;
                 this.updateUI();
+
                 try {
-                    if (this.connectionTimer) clearInterval(this.connectionTimer);
+                    // Останавливаем таймер соединения
+                    if (this.connectionTimer) {
+                        clearInterval(this.connectionTimer);
+                        this.connectionTimer = null;
+                    }
+
+                    // Очищаем буфер и таймер вывода
                     this.cancelFlush();
                     this.receiveBuffer = '';
+
+                    // Останавливаем чтение
                     this.shouldRead = false;
+
+                    // Закрываем writer если он активен
                     await this.closeWriter();
+
+                    // Отменяем reader если он активен
                     await this.closeReader();
+
+                    // Закрываем порт
                     await this.closePort();
+
                     this.showMessage('Соединение закрыто', 'info');
+
                 } catch (error) {
                     console.error('Disconnect error:', error);
                     this.showMessage(`Ошибка отключения: ${error.message}`, 'error');
+
                 } finally {
+                    // ВАЖНО: Всегда сбрасываем состояние в finally
                     this.resetConnectionState();
                     this.isDisconnecting = false;
                     this.updateUI();
@@ -1493,10 +1580,15 @@
             async closeWriter() {
                 if (this.writer) {
                     try {
+                        // Получаем текущий writer
                         const writer = this.writer;
                         this.writer = null;
+
+                        // Закрываем writer
                         await writer.close();
                         await writer.closed;
+
+                        console.log('Writer closed successfully');
                     } catch (error) {
                         console.warn('Error closing writer:', error);
                     }
@@ -1506,11 +1598,21 @@
             async closeReader() {
                 if (this.reader) {
                     try {
+                        // Отменяем текущий reader
                         const reader = this.reader;
                         this.reader = null;
+
                         reader.cancel();
-                        await reader.closed.catch(() => {});
+
+                        // Ждем завершения
+                        await reader.closed.catch(() => {
+                            // Ожидаем, что reader.cancel() вызовет ошибку
+                        });
+
+                        // Освобождаем лок
                         reader.releaseLock();
+
+                        console.log('Reader closed successfully');
                     } catch (error) {
                         console.warn('Error closing reader:', error);
                     }
@@ -1520,63 +1622,107 @@
             async closePort() {
                 if (this.port) {
                     try {
+                        // Сохраняем ссылку на порт
                         const port = this.port;
                         this.port = null;
+
+                        // Закрываем порт
                         await port.close();
+
+                        console.log('Port closed successfully');
                     } catch (error) {
                         console.warn('Error closing port:', error);
+
+                        // Если порт не закрывается, принудительно сбрасываем состояние
+                        if (error.name === 'InvalidStateError') {
+                            console.warn('Port was already closed or in invalid state');
+                        }
                     }
                 }
             }
 
             resetConnectionState() {
+                // ВАЖНО: Всегда сбрасываем isConnected в false
                 this.isConnected = false;
                 this.isConnecting = false;
                 this.isDisconnecting = false;
                 this.shouldRead = false;
                 this.connectionStartTime = null;
+
+                // Очищаем ссылки
                 this.port = null;
                 this.reader = null;
                 this.writer = null;
-                if (this.connectionTimer) clearInterval(this.connectionTimer);
+
+                // Останавливаем таймер
+                if (this.connectionTimer) {
+                    clearInterval(this.connectionTimer);
+                    this.connectionTimer = null;
+                }
+
+                console.log('Connection state reset');
             }
 
             async startReading() {
                 if (!this.port || !this.port.readable || !this.shouldRead) return;
+
                 const textDecoder = new TextDecoder();
+
                 try {
                     while (this.shouldRead && this.port && this.port.readable) {
                         try {
                             this.reader = this.port.readable.getReader();
+
                             while (this.shouldRead) {
                                 const { value, done } = await this.reader.read();
+
                                 if (done) {
+                                    console.log('Reading done');
                                     const remainder = textDecoder.decode();
-                                    if (remainder) this.processIncomingRemainder(remainder);
+                                    if (remainder) {
+                                        this.processIncomingRemainder(remainder);
+                                    }
                                     break;
                                 }
+
                                 if (value && value.length > 0) {
                                     this.receivedBytes += value.length;
                                     this.elements.receivedCount.textContent = this.formatNumber(this.receivedBytes);
                                     this.processIncomingData(value, textDecoder);
                                 }
                             }
+
                         } catch (error) {
-                            if (error.name === 'InterruptedError') break;
-                            else if (error.name === 'NetworkError') this.showMessage('Ошибка сети при чтении', 'error');
-                            else console.error('Read error:', error);
-                            break;
+                            if (error.name === 'InterruptedError') {
+                                console.log('Reading interrupted normally');
+                                break;
+                            } else if (error.name === 'NetworkError') {
+                                this.showMessage('Ошибка сети при чтении', 'error');
+                                break;
+                            } else {
+                                console.error('Read error:', error);
+                                this.showMessage(`Ошибка чтения: ${error.message}`, 'error');
+                                break;
+                            }
                         } finally {
                             if (this.reader) {
-                                try { this.reader.releaseLock(); } catch (e) {}
+                                try {
+                                    this.reader.releaseLock();
+                                } catch (releaseError) {
+                                    console.warn('Error releasing reader lock:', releaseError);
+                                }
                                 this.reader = null;
                             }
                         }
                     }
+
                 } catch (error) {
                     console.error('Read loop error:', error);
                 } finally {
-                    if (this.shouldRead && this.isConnected) this.disconnect();
+                    if (this.shouldRead && this.isConnected) {
+                        console.log('Read loop stopped unexpectedly, disconnecting');
+                        this.disconnect();
+                    }
                 }
             }
 
@@ -1590,19 +1736,31 @@
                     if (displayText) this.appendToTerminal(displayText, 'received');
                     return;
                 }
+
                 const chunk = decoder.decode(data, { stream: true });
                 this.receiveBuffer += chunk;
+
                 const lines = this.receiveBuffer.split('\n');
                 const completeLines = lines.slice(0, -1);
                 const lastPartial = lines[lines.length - 1];
-                for (const line of completeLines) this.appendToTerminal(line, 'received');
+
+                for (const line of completeLines) {
+                    this.appendToTerminal(line, 'received');
+                }
+
                 this.receiveBuffer = lastPartial;
-                if (this.receiveBuffer) this.scheduleFlush();
-                else this.cancelFlush();
+
+                if (this.receiveBuffer) {
+                    this.scheduleFlush();
+                } else {
+                    this.cancelFlush();
+                }
             }
 
             processIncomingRemainder(remainder) {
-                if (remainder) this.appendToTerminal(remainder, 'received');
+                if (remainder) {
+                    this.appendToTerminal(remainder, 'received');
+                }
                 this.receiveBuffer = '';
                 this.cancelFlush();
             }
@@ -1619,7 +1777,10 @@
             }
 
             cancelFlush() {
-                if (this.flushTimeout) clearTimeout(this.flushTimeout);
+                if (this.flushTimeout) {
+                    clearTimeout(this.flushTimeout);
+                    this.flushTimeout = null;
+                }
             }
 
             async sendData(addNewline) {
@@ -1627,36 +1788,71 @@
                     this.showMessage('Нет подключения к порту', 'error');
                     return;
                 }
+
                 const inputText = this.elements.inputText.value;
                 if (!inputText.trim()) return;
+
                 try {
-                    let data, displayText;
+                    let data;
+                    let displayText;
+
                     if (this.elements.inputMode.value === 'hex') {
                         const hexString = inputText.replace(/\s+/g, '');
-                        if (!/^[0-9A-Fa-f]+$/.test(hexString)) throw new Error('Неверный HEX формат');
-                        if (hexString.length % 2 !== 0) throw new Error('HEX строка должна иметь четную длину');
+                        if (!/^[0-9A-Fa-f]+$/.test(hexString)) {
+                            throw new Error('Неверный HEX формат');
+                        }
+
+                        if (hexString.length % 2 !== 0) {
+                            throw new Error('HEX строка должна иметь четную длину');
+                        }
+
                         data = new Uint8Array(hexString.length / 2);
-                        for (let i = 0; i < data.length; i++) data[i] = parseInt(hexString.substr(i * 2, 2), 16);
+                        for (let i = 0; i < data.length; i++) {
+                            data[i] = parseInt(hexString.substr(i * 2, 2), 16);
+                        }
+
                         displayText = `[HEX] ${hexString.toUpperCase()}`;
                     } else {
                         const text = addNewline ? inputText + '\n' : inputText;
-                        data = new TextEncoder().encode(text);
+                        const encoder = new TextEncoder();
+                        data = encoder.encode(text);
                         displayText = addNewline ? inputText + '\\n' : inputText;
                     }
+
                     this.writer = this.port.writable.getWriter();
                     await this.writer.write(data);
+
                     this.sentBytes += data.length;
                     this.elements.sentCount.textContent = this.formatNumber(this.sentBytes);
+
                     this.writer.releaseLock();
                     this.writer = null;
+
                     this.appendToTerminal(displayText, 'sent');
-                    if (!addNewline) this.elements.inputText.value = '';
+
+                    if (!addNewline) {
+                        this.elements.inputText.value = '';
+                    }
+
                 } catch (error) {
                     console.error('Send error:', error);
-                    if (error.name === 'NetworkError' || error.name === 'InvalidStateError') this.disconnect();
-                    else this.showMessage(`Ошибка отправки: ${error.message}`, 'error');
+
+                    if (error.name === 'NetworkError') {
+                        this.showMessage('Ошибка сети при отправке', 'error');
+                        this.disconnect();
+                    } else if (error.name === 'InvalidStateError') {
+                        this.showMessage('Порт недоступен для записи', 'error');
+                        this.disconnect();
+                    } else {
+                        this.showMessage(`Ошибка отправки: ${error.message}`, 'error');
+                    }
+
                     if (this.writer) {
-                        try { this.writer.releaseLock(); } catch (e) {}
+                        try {
+                            this.writer.releaseLock();
+                        } catch (releaseError) {
+                            console.warn('Error releasing writer:', releaseError);
+                        }
                         this.writer = null;
                     }
                 }
@@ -1666,76 +1862,238 @@
                 if (this.currentLines >= this.maxLines) {
                     const lines = this.elements.terminal.children;
                     const toRemove = Math.min(1000, this.currentLines);
-                    for (let i = 0; i < toRemove; i++) if (lines[0]) this.elements.terminal.removeChild(lines[0]);
+
+                    for (let i = 0; i < toRemove; i++) {
+                        if (lines[0]) {
+                            this.elements.terminal.removeChild(lines[0]);
+                        }
+                    }
                     this.currentLines = Math.max(0, this.currentLines - toRemove);
                 }
+
                 const line = document.createElement('div');
                 line.className = 'terminal-message';
-                const timestamp = this.showTimestamp ? `<span class="terminal-timestamp">[${this.getTimeString()}]</span>` : '';
-                if (type === 'sent') line.innerHTML = `${timestamp}<span class="terminal-sent">→ ${this.escapeHtml(text)}</span>`;
-                else if (type === 'received') line.innerHTML = `${timestamp}<span class="terminal-received">← ${this.escapeHtml(text)}</span>`;
-                else line.innerHTML = `${timestamp}<span class="terminal-meta">${this.escapeHtml(text)}</span>`;
+
+                const timestamp = this.showTimestamp ?
+                    `<span class="terminal-timestamp">[${this.getTimeString()}]</span>` : '';
+
+                if (type === 'sent') {
+                    line.innerHTML = `${timestamp}<span class="terminal-sent">→ ${this.escapeHtml(text)}</span>`;
+                } else if (type === 'received') {
+                    line.innerHTML = `${timestamp}<span class="terminal-received">← ${this.escapeHtml(text)}</span>`;
+                } else {
+                    line.innerHTML = `${timestamp}<span class="terminal-meta">${this.escapeHtml(text)}</span>`;
+                }
+
                 this.elements.terminal.appendChild(line);
                 this.currentLines++;
+
                 this.elements.bufferSize.textContent = `${this.currentLines}/${this.maxLines} строк`;
-                if (this.autoScroll) setTimeout(() => { this.elements.terminal.scrollTop = this.elements.terminal.scrollHeight; }, 10);
+
+                if (this.autoScroll) {
+                    setTimeout(() => {
+                        this.elements.terminal.scrollTop = this.elements.terminal.scrollHeight;
+                    }, 10);
+                }
             }
 
-            escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-            getTimeString() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
-            clearTerminal() { this.cancelFlush(); this.receiveBuffer = ''; this.elements.terminal.innerHTML = ''; this.currentLines = 0; this.elements.bufferSize.textContent = `0/${this.maxLines} строк`; this.showMessage('Терминал очищен', 'info'); }
-            clearInput() { this.elements.inputText.value = ''; this.elements.inputText.focus(); }
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            getTimeString() {
+                const now = new Date();
+                return now.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+
+            clearTerminal() {
+                this.cancelFlush();
+                this.receiveBuffer = '';
+                this.elements.terminal.innerHTML = '';
+                this.currentLines = 0;
+                this.elements.bufferSize.textContent = `0/${this.maxLines} строк`;
+                this.showMessage('Терминал очищен', 'info');
+            }
+
+            clearInput() {
+                this.elements.inputText.value = '';
+                this.elements.inputText.focus();
+            }
+
             updateUI() {
+                // Обновление состояния кнопок – теперь без sendNewlineBtn
                 this.elements.connectBtn.disabled = this.isConnected || this.isConnecting;
                 this.elements.disconnectBtn.disabled = !this.isConnected || this.isDisconnecting;
                 this.elements.sendBtn.disabled = !this.isConnected || this.isConnecting || this.isDisconnecting;
-                if (this.isConnecting) { this.elements.statusIndicator.className = 'status-indicator connecting'; this.elements.statusText.textContent = 'Подключение...'; this.elements.connectionStatus.textContent = 'Подключение...'; }
-                else if (this.isConnected) { this.elements.statusIndicator.className = 'status-indicator connected'; this.elements.statusText.textContent = 'Подключено'; this.elements.connectionStatus.textContent = 'Подключено к порту'; }
-                else if (this.isDisconnecting) { this.elements.statusIndicator.className = 'status-indicator disconnecting'; this.elements.statusText.textContent = 'Отключение...'; this.elements.connectionStatus.textContent = 'Отключение...'; }
-                else { this.elements.statusIndicator.className = 'status-indicator'; this.elements.statusText.textContent = 'Отключено'; this.elements.connectionStatus.textContent = 'Готов к подключению'; }
+
+                // Обновление индикатора статуса
+                if (this.isConnecting) {
+                    this.elements.statusIndicator.className = 'status-indicator connecting';
+                    this.elements.statusText.textContent = 'Подключение...';
+                    this.elements.connectionStatus.textContent = 'Подключение...';
+                } else if (this.isConnected) {
+                    this.elements.statusIndicator.className = 'status-indicator connected';
+                    this.elements.statusText.textContent = 'Подключено';
+                    this.elements.connectionStatus.textContent = 'Подключено к порту';
+                } else if (this.isDisconnecting) {
+                    this.elements.statusIndicator.className = 'status-indicator disconnecting';
+                    this.elements.statusText.textContent = 'Отключение...';
+                    this.elements.connectionStatus.textContent = 'Отключение...';
+                } else {
+                    this.elements.statusIndicator.className = 'status-indicator';
+                    this.elements.statusText.textContent = 'Отключено';
+                    this.elements.connectionStatus.textContent = 'Готов к подключению';
+                }
+
+                // Обновление информации о скорости
                 this.updateBaudRateDisplay();
+
+                console.log('UI Update:', {
+                    isConnected: this.isConnected,
+                    isConnecting: this.isConnecting,
+                    isDisconnecting: this.isDisconnecting,
+                    connectBtnDisabled: this.elements.connectBtn.disabled,
+                    disconnectBtnDisabled: this.elements.disconnectBtn.disabled
+                });
             }
-            updateBaudRateDisplay() { this.elements.baudRateValue.textContent = this.elements.baudRate.value; }
-            updateInputMode() { this.elements.inputText.placeholder = this.elements.inputMode.value === 'hex' ? 'Введите HEX значения (например: 48656C6C6F)' : 'Введите текст для отправки...'; }
-            toggleAutoScroll() { this.autoScroll = !this.autoScroll; this.elements.autoScrollBtn.dataset.active = this.autoScroll; this.updateToggleButtons(); this.saveSettings(); }
-            toggleTimestamp() { this.showTimestamp = !this.showTimestamp; this.elements.showTimestampBtn.dataset.active = this.showTimestamp; this.updateToggleButtons(); this.saveSettings(); }
-            toggleHexView() { this.hexView = !this.hexView; this.elements.hexViewBtn.dataset.active = this.hexView; this.updateToggleButtons(); this.saveSettings(); }
-            updateToggleButtons() { this.elements.autoScrollBtn.textContent = this.autoScroll ? 'Автопрокрутка ✓' : 'Автопрокрутка'; this.elements.showTimestampBtn.textContent = this.showTimestamp ? 'Время ✓' : 'Время'; this.elements.hexViewBtn.textContent = this.hexView ? 'HEX ✓' : 'HEX'; }
+
+            updateBaudRateDisplay() {
+                this.elements.baudRateValue.textContent = this.elements.baudRate.value;
+            }
+
+            updateInputMode() {
+                const mode = this.elements.inputMode.value;
+                const placeholder = mode === 'hex' ?
+                    'Введите HEX значения (например: 48656C6C6F)' :
+                    'Введите текст для отправки...';
+
+                this.elements.inputText.placeholder = placeholder;
+            }
+
+            toggleAutoScroll() {
+                this.autoScroll = !this.autoScroll;
+                this.elements.autoScrollBtn.dataset.active = this.autoScroll;
+                this.updateToggleButtons();
+                this.saveSettings();
+            }
+
+            toggleTimestamp() {
+                this.showTimestamp = !this.showTimestamp;
+                this.elements.showTimestampBtn.dataset.active = this.showTimestamp;
+                this.updateToggleButtons();
+                this.saveSettings();
+            }
+
+            toggleHexView() {
+                this.hexView = !this.hexView;
+                this.elements.hexViewBtn.dataset.active = this.hexView;
+                this.updateToggleButtons();
+                this.saveSettings();
+            }
+
+            updateToggleButtons() {
+                this.elements.autoScrollBtn.textContent = this.autoScroll ?
+                    'Автопрокрутка ✓' : 'Автопрокрутка';
+
+                this.elements.showTimestampBtn.textContent = this.showTimestamp ?
+                    'Время ✓' : 'Время';
+
+                this.elements.hexViewBtn.textContent = this.hexView ?
+                    'HEX ✓' : 'HEX';
+            }
+
             toggleTheme() {
                 const currentTheme = document.body.getAttribute('data-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
                 document.body.setAttribute('data-theme', newTheme);
                 document.body.className = newTheme === 'dark' ? 'theme-dark' : 'theme-light';
+
                 this.updateThemeToggle(newTheme);
                 localStorage.setItem('terminalTheme', newTheme);
-                if (this.customSelects) this.customSelects.forEach(cs => cs.updateValue());
+
+                // Обновление кастомных селектов (перерисовка текста и пересчёт цветов стрелок)
+                if (this.customSelects) {
+                    this.customSelects.forEach(cs => cs.updateValue());
+                }
             }
-            updateThemeToggle(theme) { this.elements.themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на темную тему'); }
-            toggleSidebar() { this.elements.sidebar.classList.toggle('active'); }
+
+            updateThemeToggle(theme) {
+                const themeToggle = this.elements.themeToggle;
+                if (theme === 'dark') {
+                    themeToggle.setAttribute('aria-label', 'Переключить на светлую тему');
+                } else {
+                    themeToggle.setAttribute('aria-label', 'Переключить на темную тему');
+                }
+            }
+
+            toggleSidebar() {
+                this.elements.sidebar.classList.toggle('active');
+            }
+
             startConnectionTimer() {
                 clearInterval(this.connectionTimer);
+
                 this.connectionTimer = setInterval(() => {
                     if (this.connectionStartTime) {
-                        const diff = Math.floor((new Date() - this.connectionStartTime) / 1000);
-                        this.elements.connectionTime.textContent = `${Math.floor(diff / 60)}:${(diff % 60).toString().padStart(2, '0')}`;
+                        const now = new Date();
+                        const diff = Math.floor((now - this.connectionStartTime) / 1000);
+                        const minutes = Math.floor(diff / 60);
+                        const seconds = diff % 60;
+                        this.elements.connectionTime.textContent =
+                            `${minutes}:${seconds.toString().padStart(2, '0')}`;
                     }
                 }, 1000);
             }
-            showMessage(text, type = 'info') { this.appendToTerminal(`${type}: ${text}`, type); }
-            formatNumber(num) { if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M'; if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K'; return num.toLocaleString(); }
+
+            showMessage(text, type = 'info') {
+                this.appendToTerminal(`${type}: ${text}`, type);
+            }
+
+            formatNumber(num) {
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(1) + 'M';
+                } else if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                }
+                return num.toLocaleString();
+            }
         }
 
+        // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
-            try { window.terminal = new SerialTerminal(); console.log('Serial Terminal initialized'); }
-            catch (error) { console.error('Failed to initialize terminal:', error); alert('Ошибка инициализации терминала. Пожалуйста, обновите страницу.'); }
+            try {
+                window.terminal = new SerialTerminal();
+                console.log('Serial Terminal initialized');
+            } catch (error) {
+                console.error('Failed to initialize terminal:', error);
+                alert('Ошибка инициализации терминала. Пожалуйста, обновите страницу.');
+            }
         });
 
+        // Обработка закрытия страницы
         window.addEventListener('beforeunload', (e) => {
             if (window.terminal && window.terminal.isConnected) {
+                const confirmationMessage = 'У вас есть активное соединение. Вы уверены, что хотите закрыть страницу?';
+
                 e.preventDefault();
-                e.returnValue = 'У вас есть активное соединение. Вы уверены, что хотите закрыть страницу?';
-                setTimeout(() => { if (window.terminal && window.terminal.disconnect) window.terminal.disconnect().catch(err => console.error(err)); }, 100);
-                return e.returnValue;
+                e.returnValue = confirmationMessage;
+
+                setTimeout(() => {
+                    if (window.terminal && window.terminal.disconnect) {
+                        window.terminal.disconnect().catch(err => {
+                            console.error('Error during page unload disconnect:', err);
+                        });
+                    }
+                }, 100);
+
+                return confirmationMessage;
             }
         });
     </script>
