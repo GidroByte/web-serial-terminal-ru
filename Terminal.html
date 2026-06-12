@@ -10,40 +10,60 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap"
         rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 10H7v-2h5v2zm4 0h-2v-2h2v2zm-4-4H7V8h5v2zm4 0h-2V8h2v2z'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 10H7v-2h5v2zm4 0h-2v-2h2v2zm-4-4H7V8h5v2zm4 0h-2V8h2v2z'/%3E%3C/svg%3E">
     <style>
         /* ===== CSS Variables ===== */
         :root {
             /* Dark Theme (default) — тёмная тема по умолчанию */
-            --bg-primary: #0f172a;       /* основной фон страницы */
-            --bg-secondary: #1e293b;     /* фон сайдбара, выпадающих списков */
-            --bg-tertiary: #334155;      /* фон полей ввода, кнопок, триггеров */
-            --bg-input: #475569;         /* фон при наведении на поля */
-            --border: #475569;           /* цвет границ по умолчанию */
-            --border-light: #64748b;     /* светлая граница при ховере */
-            --text-primary: #f1f5f9;     /* основной цвет текста */
-            --text-secondary: #cbd5e1;   /* второстепенный текст */
-            --text-muted: #94a3b8;       /* приглушённый текст */
+            --bg-primary: #0f172a;
+            /* основной фон страницы */
+            --bg-secondary: #1e293b;
+            /* фон сайдбара, выпадающих списков */
+            --bg-tertiary: #334155;
+            /* фон полей ввода, кнопок, триггеров */
+            --bg-input: #475569;
+            /* фон при наведении на поля */
+            --border: #475569;
+            /* цвет границ по умолчанию */
+            --border-light: #64748b;
+            /* светлая граница при ховере */
+            --text-primary: #f1f5f9;
+            /* основной цвет текста */
+            --text-secondary: #cbd5e1;
+            /* второстепенный текст */
+            --text-muted: #94a3b8;
+            /* приглушённый текст */
 
             /* Accent Colors — акцентные цвета */
-            --accent-blue: #3b82f6;      /* синий (для рамок, кнопок) */
+            --accent-blue: #3b82f6;
+            /* синий (для рамок, кнопок) */
             --accent-blue-hover: #2563eb;
-            --accent-green: #10b981;     /* зелёный (для активных состояний) */
+            --accent-green: #10b981;
+            /* зелёный (для активных состояний) */
             --accent-green-hover: #059669;
-            --accent-red: #ef4444;       /* красный (отключение) */
+            --accent-red: #ef4444;
+            /* красный (отключение) */
             --accent-red-hover: #dc2626;
             --accent-yellow: #f59e0b;
 
             /* Terminal Colors — цвета вывода терминала */
-            --terminal-bg: #000000;      /* фон области терминала */
-            --terminal-text: #00ff88;    /* цвет текста терминала (зелёный) */
-            --terminal-text-sent: #60a5fa;   /* отправленные данные (голубой) */
-            --terminal-text-received: #34d399; /* полученные данные (зелёный) */
-            --terminal-text-meta: #9ca3af;    /* служебные сообщения (серый) */
+            --terminal-bg: #000000;
+            /* фон области терминала */
+            --terminal-text: #00ff88;
+            /* цвет текста терминала (зелёный) */
+            --terminal-text-sent: #60a5fa;
+            /* отправленные данные (голубой) */
+            --terminal-text-received: #34d399;
+            /* полученные данные (зелёный) */
+            --terminal-text-meta: #9ca3af;
+            /* служебные сообщения (серый) */
 
             /* Typography — шрифты */
-            --font-ui: 'Inter', sans-serif;      /* интерфейсный шрифт */
-            --font-mono: 'JetBrains Mono', monospace; /* моноширинный для терминала */
+            --font-ui: 'Inter', sans-serif;
+            /* интерфейсный шрифт */
+            --font-mono: 'JetBrains Mono', monospace;
+            /* моноширинный для терминала */
 
             /* Spacing */
             --spacing-xs: 2px;
@@ -1084,8 +1104,8 @@
                             <button id="showTimestampBtn" class="btn btn-secondary btn-small" data-active="true">
                                 <span>Время</span>
                             </button>
-                            <button id="hexViewBtn" class="btn btn-secondary btn-small">
-                                <span>HEX</span>
+                            <button id="displayModeBtn" class="btn btn-secondary btn-small">
+                                <span>Текст</span>
                             </button>
                         </div>
                     </section>
@@ -1116,6 +1136,7 @@
                             <select id="inputMode" class="mode-select">
                                 <option value="text">Текст</option>
                                 <option value="hex">HEX</option>
+                                <option value="decimal">Decimal</option>
                             </select>
                         </div>
                         <div class="input-actions">
@@ -1153,7 +1174,7 @@
                 </div>
                 <div class="footer-item">
                     <span class="footer-label">Версия:</span>
-                    <span class="footer-value">1.0.1</span>
+                    <span class="footer-value">1.0.3</span>
                 </div>
             </div>
             <div class="footer-status">
@@ -1281,7 +1302,7 @@
                 // Конфигурация
                 this.autoScroll = true;
                 this.showTimestamp = true;
-                this.hexView = false;
+                this.displayMode = 'text';
                 this.maxLines = 5000;
                 this.currentLines = 0;
 
@@ -1320,7 +1341,7 @@
                     // Переключатели
                     autoScrollBtn: document.getElementById('autoScrollBtn'),
                     showTimestampBtn: document.getElementById('showTimestampBtn'),
-                    hexViewBtn: document.getElementById('hexViewBtn'),
+                    displayModeBtn: document.getElementById('displayModeBtn'),
                     themeToggle: document.getElementById('themeToggle'),
                     menuToggle: document.getElementById('menuToggle'),
 
@@ -1382,7 +1403,7 @@
                 // Переключатели
                 this.elements.autoScrollBtn.addEventListener('click', () => this.toggleAutoScroll());
                 this.elements.showTimestampBtn.addEventListener('click', () => this.toggleTimestamp());
-                this.elements.hexViewBtn.addEventListener('click', () => this.toggleHexView());
+                this.elements.displayModeBtn.addEventListener('click', () => this.toggleDisplayMode());
                 this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
                 this.elements.menuToggle.addEventListener('click', () => this.toggleSidebar());
 
@@ -1430,7 +1451,7 @@
 
                     this.autoScroll = settings.autoScroll !== false;
                     this.showTimestamp = settings.showTimestamp !== false;
-                    this.hexView = settings.hexView || false;
+                    this.displayMode = settings.displayMode || 'text';
 
                     // Загружаем тему
                     const savedTheme = localStorage.getItem('terminalTheme');
@@ -1453,7 +1474,7 @@
                     const settings = {
                         autoScroll: this.autoScroll,
                         showTimestamp: this.showTimestamp,
-                        hexView: this.hexView
+                        displayMode: this.displayMode
                     };
                     localStorage.setItem('serialTerminalSettings', JSON.stringify(settings));
                 } catch (error) {
@@ -1727,10 +1748,19 @@
             }
 
             processIncomingData(data, decoder) {
-                if (this.hexView) {
+                if (this.displayMode === 'hex') {
                     let displayText = '';
                     for (let i = 0; i < data.length; i++) {
                         displayText += data[i].toString(16).padStart(2, '0').toUpperCase() + ' ';
+                        if ((i + 1) % 16 === 0) displayText += '\n';
+                    }
+                    if (displayText) this.appendToTerminal(displayText, 'received');
+                    return;
+                }
+                if (this.displayMode === 'decimal') {
+                    let displayText = '';
+                    for (let i = 0; i < data.length; i++) {
+                        displayText += data[i].toString(10) + ' ';
                         if ((i + 1) % 16 === 0) displayText += '\n';
                     }
                     if (displayText) this.appendToTerminal(displayText, 'received');
@@ -1795,24 +1825,50 @@
                 try {
                     let data;
                     let displayText;
+                    const mode = this.elements.inputMode.value;
 
-                    if (this.elements.inputMode.value === 'hex') {
+                    if (mode === 'hex') {
                         const hexString = inputText.replace(/\s+/g, '');
                         if (!/^[0-9A-Fa-f]+$/.test(hexString)) {
                             throw new Error('Неверный HEX формат');
                         }
-
                         if (hexString.length % 2 !== 0) {
                             throw new Error('HEX строка должна иметь четную длину');
                         }
-
                         data = new Uint8Array(hexString.length / 2);
                         for (let i = 0; i < data.length; i++) {
                             data[i] = parseInt(hexString.substr(i * 2, 2), 16);
                         }
-
                         displayText = `[HEX] ${hexString.toUpperCase()}`;
-                    } else {
+                        // В hex режиме addNewline не обрабатывается (оставляем как было)
+                    }
+                    else if (mode === 'decimal') {
+                        // Разделяем пробелами, табами, переводами строк
+                        const parts = inputText.trim().split(/\s+/);
+                        const bytes = [];
+                        for (const part of parts) {
+                            const num = parseInt(part, 10);
+                            if (isNaN(num) || num < 0 || num > 255) {
+                                throw new Error(`Недопустимое десятичное значение: ${part} (должно быть от 0 до 255)`);
+                            }
+                            bytes.push(num);
+                        }
+                        if (bytes.length === 0) {
+                            throw new Error('Нет корректных десятичных чисел');
+                        }
+                        // Копируем байты
+                        data = new Uint8Array(bytes);
+                        displayText = `[Dec] ${bytes.join(' ')}`;
+                        // Добавляем \n, если нужно
+                        if (addNewline) {
+                            const newData = new Uint8Array(data.length + 1);
+                            newData.set(data);
+                            newData[data.length] = 10; // LF
+                            data = newData;
+                            displayText += ' \\n';
+                        }
+                    }
+                    else { // text
                         const text = addNewline ? inputText + '\n' : inputText;
                         const encoder = new TextEncoder();
                         data = encoder.encode(text);
@@ -1830,6 +1886,7 @@
 
                     this.appendToTerminal(displayText, 'sent');
 
+                    // Очищаем поле ввода только если НЕ добавлен перевод строки (исходное поведение)
                     if (!addNewline) {
                         this.elements.inputText.value = '';
                     }
@@ -1969,11 +2026,13 @@
 
             updateInputMode() {
                 const mode = this.elements.inputMode.value;
-                const placeholder = mode === 'hex' ?
-                    'Введите HEX значения (например: 48656C6C6F)' :
-                    'Введите текст для отправки...';
-
-                this.elements.inputText.placeholder = placeholder;
+                if (mode === 'hex') {
+                    this.elements.inputText.placeholder = 'Введите HEX значения (например: 48656C6C6F)';
+                } else if (mode === 'decimal') {
+                    this.elements.inputText.placeholder = 'Введите числа от 0 до 255 через пробел (например: 72 101 108 108 111)';
+                } else {
+                    this.elements.inputText.placeholder = 'Введите текст для отправки...';
+                }
             }
 
             toggleAutoScroll() {
@@ -1990,22 +2049,19 @@
                 this.saveSettings();
             }
 
-            toggleHexView() {
-                this.hexView = !this.hexView;
-                this.elements.hexViewBtn.dataset.active = this.hexView;
-                this.updateToggleButtons();
+            toggleDisplayMode() {
+                const modes = ['text', 'hex', 'decimal'];
+                const currentIndex = modes.indexOf(this.displayMode);
+                const nextIndex = (currentIndex + 1) % modes.length;
+                this.displayMode = modes[nextIndex];
+                this.updateDisplayModeButton();
                 this.saveSettings();
             }
 
-            updateToggleButtons() {
-                this.elements.autoScrollBtn.textContent = this.autoScroll ?
-                    'Автопрокрутка ✓' : 'Автопрокрутка';
-
-                this.elements.showTimestampBtn.textContent = this.showTimestamp ?
-                    'Время ✓' : 'Время';
-
-                this.elements.hexViewBtn.textContent = this.hexView ?
-                    'HEX ✓' : 'HEX';
+            updateDisplayModeButton() {
+                const modeNames = { text: 'Текст', hex: 'HEX', decimal: 'Dec' };
+                this.elements.displayModeBtn.textContent = modeNames[this.displayMode];
+                this.elements.displayModeBtn.dataset.active = (this.displayMode !== 'text').toString();
             }
 
             toggleTheme() {
