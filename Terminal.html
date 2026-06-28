@@ -635,12 +635,24 @@
             margin-right: var(--spacing-sm);
         }
 
+        .byte-count {
+            color: var(--terminal-text-meta);
+            font-size: 10px;
+            margin-right: var(--spacing-sm);
+        }
+
         .terminal-sent {
             color: var(--terminal-text-sent);
         }
 
         .terminal-received {
             color: var(--terminal-text-received);
+        }
+
+        /* Непечатаемые символы */
+        .escape-sequence {
+            color: #6b7280;
+            opacity: 0.7;
         }
 
         /* ===== Responsive Design ===== */
@@ -1104,9 +1116,22 @@
                             <button id="showTimestampBtn" class="btn btn-secondary btn-small" data-active="true">
                                 <span>Время</span>
                             </button>
+                            <button id="showByteCountBtn" class="btn btn-secondary btn-small" data-active="false">
+                                <span>Байты</span>
+                            </button>
                             <button id="displayModeBtn" class="btn btn-secondary btn-small">
                                 <span>Текст</span>
                             </button>
+                            <button id="showNonPrintableBtn" class="btn btn-secondary btn-small" data-active="false">
+                                <span>Непечатные</span>
+                            </button>
+                        </div>
+                        <div class="config-item" style="margin-top: var(--spacing-lg);">
+                            <label class="config-label">Таймаут буфера (мс)</label>
+                            <input type="number" id="flushTimeout" min="10" max="2000" value="100" step="10" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); 
+                  border-radius: var(--radius-md); padding: var(--spacing-md); width: 100%;">
+                            <span style="font-size:10px; color: var(--text-muted);">Задержка перед выводом строки без
+                                ↵</span>
                         </div>
                     </section>
                 </div>
@@ -1174,7 +1199,7 @@
                 </div>
                 <div class="footer-item">
                     <span class="footer-label">Версия:</span>
-                    <span class="footer-value">1.0.3</span>
+                    <span class="footer-value">1.0.4</span>
                 </div>
             </div>
             <div class="footer-status">
@@ -1188,6 +1213,8 @@
     <script>
         // ========== КАСТОМНЫЙ СЕЛЕКТ ==========
         class CustomSelect {
+            static currentOpen = null; // Ссылка на текущий открытый селект
+
             constructor(selectElement) {
                 this.selectElement = selectElement;
                 this.init();
@@ -1226,13 +1253,14 @@
                     this.toggle();
                 });
 
+                this.selectElement.addEventListener('change', () => this.updateValue());
+
                 document.addEventListener('click', (e) => {
                     if (!this.container.contains(e.target)) {
                         this.close();
                     }
                 });
 
-                this.selectElement.addEventListener('change', () => this.updateValue());
             }
 
             updateOptions() {
@@ -1277,11 +1305,20 @@
             }
 
             open() {
+                if (CustomSelect.currentOpen && CustomSelect.currentOpen !== this) {
+                    CustomSelect.currentOpen.close();
+                }
+                CustomSelect.currentOpen = this;
+
                 this.dropdown.setAttribute('data-open', 'true');
                 this.trigger.setAttribute('data-open', 'true');
             }
 
             close() {
+                if (CustomSelect.currentOpen === this) {
+                    CustomSelect.currentOpen = null;
+                }
+
                 this.dropdown.setAttribute('data-open', 'false');
                 this.trigger.setAttribute('data-open', 'false');
             }
@@ -1302,6 +1339,7 @@
                 // Конфигурация
                 this.autoScroll = true;
                 this.showTimestamp = true;
+                this.showByteCount = false;
                 this.displayMode = 'text';
                 this.maxLines = 5000;
                 this.currentLines = 0;
@@ -1341,6 +1379,8 @@
                     // Переключатели
                     autoScrollBtn: document.getElementById('autoScrollBtn'),
                     showTimestampBtn: document.getElementById('showTimestampBtn'),
+                    showByteCountBtn: document.getElementById('showByteCountBtn'),
+                    showNonPrintableBtn: document.getElementById('showNonPrintableBtn'),
                     displayModeBtn: document.getElementById('displayModeBtn'),
                     themeToggle: document.getElementById('themeToggle'),
                     menuToggle: document.getElementById('menuToggle'),
@@ -1370,7 +1410,8 @@
                     bufferSize: document.getElementById('bufferSize'),
 
                     // Боковое меню
-                    sidebar: document.getElementById('sidebar')
+                    sidebar: document.getElementById('sidebar'),
+                    flushTimeoutInput: document.getElementById('flushTimeout')
                 };
 
                 // Инициализация кастомных селектов (замена нативных <select>)
@@ -1403,6 +1444,8 @@
                 // Переключатели
                 this.elements.autoScrollBtn.addEventListener('click', () => this.toggleAutoScroll());
                 this.elements.showTimestampBtn.addEventListener('click', () => this.toggleTimestamp());
+                this.elements.showByteCountBtn.addEventListener('click', () => this.toggleByteCount());
+                this.elements.showNonPrintableBtn.addEventListener('click', () => this.toggleNonPrintable());
                 this.elements.displayModeBtn.addEventListener('click', () => this.toggleDisplayMode());
                 this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
                 this.elements.menuToggle.addEventListener('click', () => this.toggleSidebar());
@@ -1425,6 +1468,18 @@
                         !this.elements.sidebar.contains(e.target) &&
                         !this.elements.menuToggle.contains(e.target)) {
                         this.elements.sidebar.classList.remove('active');
+                    }
+                });
+
+                // Изменение таймера
+                this.elements.flushTimeoutInput.addEventListener('change', () => {
+                    const newDelay = parseInt(this.elements.flushTimeoutInput.value, 10);
+                    if (!isNaN(newDelay) && newDelay >= 10 && newDelay <= 2000) {
+                        this.flushDelay = newDelay;
+                        if (this.receiveBuffer) {
+                            this.scheduleFlush();   // перезапуск таймера с новым интервалом
+                        }
+                        this.saveSettings();        // сохранить в localStorage
                     }
                 });
             }
@@ -1452,6 +1507,13 @@
                     this.autoScroll = settings.autoScroll !== false;
                     this.showTimestamp = settings.showTimestamp !== false;
                     this.displayMode = settings.displayMode || 'text';
+                    this.showByteCount = settings.showByteCount || false;
+                    this.showNonPrintable = settings.showNonPrintable || false;
+                    // Загрузка таймаута
+                    this.flushDelay = settings.flushDelay || 100;
+                    if (this.elements.flushTimeoutInput) {
+                        this.elements.flushTimeoutInput.value = this.flushDelay;
+                    }
 
                     // Загружаем тему
                     const savedTheme = localStorage.getItem('terminalTheme');
@@ -1474,7 +1536,10 @@
                     const settings = {
                         autoScroll: this.autoScroll,
                         showTimestamp: this.showTimestamp,
-                        displayMode: this.displayMode
+                        displayMode: this.displayMode,
+                        showByteCount: this.showByteCount,
+                        flushDelay: this.flushDelay,
+                        showNonPrintable: this.showNonPrintable
                     };
                     localStorage.setItem('serialTerminalSettings', JSON.stringify(settings));
                 } catch (error) {
@@ -1754,7 +1819,7 @@
                         displayText += data[i].toString(16).padStart(2, '0').toUpperCase() + ' ';
                         if ((i + 1) % 16 === 0) displayText += '\n';
                     }
-                    if (displayText) this.appendToTerminal(displayText, 'received');
+                    if (displayText) this.appendToTerminal(displayText, 'received', data.length);
                     return;
                 }
                 if (this.displayMode === 'decimal') {
@@ -1763,7 +1828,7 @@
                         displayText += data[i].toString(10) + ' ';
                         if ((i + 1) % 16 === 0) displayText += '\n';
                     }
-                    if (displayText) this.appendToTerminal(displayText, 'received');
+                    if (displayText) this.appendToTerminal(displayText, 'received', data.length);
                     return;
                 }
 
@@ -1775,7 +1840,8 @@
                 const lastPartial = lines[lines.length - 1];
 
                 for (const line of completeLines) {
-                    this.appendToTerminal(line, 'received');
+                    const byteLen = new TextEncoder().encode(line).length;
+                    this.appendToTerminal(line, 'received', byteLen);
                 }
 
                 this.receiveBuffer = lastPartial;
@@ -1789,7 +1855,8 @@
 
             processIncomingRemainder(remainder) {
                 if (remainder) {
-                    this.appendToTerminal(remainder, 'received');
+                    const byteLen = new TextEncoder().encode(remainder).length;
+                    this.appendToTerminal(remainder, 'received', byteLen);
                 }
                 this.receiveBuffer = '';
                 this.cancelFlush();
@@ -1799,7 +1866,8 @@
                 if (this.flushTimeout) clearTimeout(this.flushTimeout);
                 this.flushTimeout = setTimeout(() => {
                     if (this.receiveBuffer) {
-                        this.appendToTerminal(this.receiveBuffer, 'received');
+                        const byteLen = new TextEncoder().encode(this.receiveBuffer).length;
+                        this.appendToTerminal(this.receiveBuffer, 'received', byteLen);
                         this.receiveBuffer = '';
                     }
                     this.flushTimeout = null;
@@ -1884,7 +1952,7 @@
                     this.writer.releaseLock();
                     this.writer = null;
 
-                    this.appendToTerminal(displayText, 'sent');
+                    this.appendToTerminal(displayText, 'sent', data.length);
 
                     // Очищаем поле ввода только если НЕ добавлен перевод строки (исходное поведение)
                     if (!addNewline) {
@@ -1915,7 +1983,8 @@
                 }
             }
 
-            appendToTerminal(text, type = 'info') {
+            appendToTerminal(text, type = 'info', byteCount = null) {
+                // Ограничение количества строк в терминале
                 if (this.currentLines >= this.maxLines) {
                     const lines = this.elements.terminal.children;
                     const toRemove = Math.min(1000, this.currentLines);
@@ -1928,25 +1997,47 @@
                     this.currentLines = Math.max(0, this.currentLines - toRemove);
                 }
 
+                // Создаём DOM-элемент строки
                 const line = document.createElement('div');
                 line.className = 'terminal-message';
 
-                const timestamp = this.showTimestamp ?
-                    `<span class="terminal-timestamp">[${this.getTimeString()}]</span>` : '';
+                // Временная метка (если включена)
+                const timestamp = this.showTimestamp
+                    ? `<span class="terminal-timestamp">[${this.getTimeString()}]</span>`
+                    : '';
 
-                if (type === 'sent') {
-                    line.innerHTML = `${timestamp}<span class="terminal-sent">→ ${this.escapeHtml(text)}</span>`;
-                } else if (type === 'received') {
-                    line.innerHTML = `${timestamp}<span class="terminal-received">← ${this.escapeHtml(text)}</span>`;
-                } else {
-                    line.innerHTML = `${timestamp}<span class="terminal-meta">${this.escapeHtml(text)}</span>`;
+                // Информация о количестве байт (если включена и передана)
+                let byteCountStr = '';
+                if (this.showByteCount && byteCount !== null && (type === 'sent' || type === 'received')) {
+                    byteCountStr = `<span class="byte-count">[${byteCount} байт]</span>`;
                 }
 
+                // Фильтр непечатных символов и экранирование HTML
+                const isData = (type === 'sent' || type === 'received');
+                let safeText;
+                if (isData && this.showNonPrintable) {
+                    safeText = this.escapeNonPrintable(text);  // уже экранированный HTML с <span>
+                } else {
+                    safeText = this.escapeHtml(text);          // обычное безопасное экранирование
+                }
+
+                // Формируем содержимое строки в зависимости от типа сообщения
+                if (type === 'sent') {
+                    line.innerHTML = `${timestamp}${byteCountStr}<span class="terminal-sent">→ ${safeText}</span>`;
+                } else if (type === 'received') {
+                    line.innerHTML = `${timestamp}${byteCountStr}<span class="terminal-received">← ${safeText}</span>`;
+                } else {
+                    line.innerHTML = `${timestamp}${byteCountStr}<span class="terminal-meta">${safeText}</span>`;
+                }
+
+                // Добавляем строку в терминал
                 this.elements.terminal.appendChild(line);
                 this.currentLines++;
 
+                // Обновляем счётчик строк
                 this.elements.bufferSize.textContent = `${this.currentLines}/${this.maxLines} строк`;
 
+                // Автопрокрутка вниз, если включена
                 if (this.autoScroll) {
                     setTimeout(() => {
                         this.elements.terminal.scrollTop = this.elements.terminal.scrollHeight;
@@ -1958,6 +2049,51 @@
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
+            }
+
+            escapeNonPrintable(text) {
+                // Если фильтр выключен, возвращаем исходный текст
+                if (!this.showNonPrintable) return this.escapeHtml(text);
+
+                let result = '';
+                // Накапливаем печатные символы, чтобы экранировать их разом
+                let buffer = '';
+
+                const flushBuffer = () => {
+                    if (buffer.length > 0) {
+                        result += this.escapeHtml(buffer);
+                        buffer = '';
+                    }
+                };
+
+                for (const char of text) {
+                    const code = char.codePointAt(0);
+
+                    if (code === 10) {           // \n
+                        flushBuffer();
+                        result += '<span class="escape-sequence">\\n</span>';
+                    } else if (code === 13) {    // \r
+                        flushBuffer();
+                        result += '<span class="escape-sequence">\\r</span>';
+                    } else if (code === 9) {     // \t
+                        flushBuffer();
+                        result += '<span class="escape-sequence">\\t</span>';
+                    } else if (code === 0) {     // null
+                        flushBuffer();
+                        result += '<span class="escape-sequence">\\0</span>';
+                    } else if (code >= 32 && code <= 126) {
+                        // Печатные ASCII
+                        buffer += char;
+                    } else {
+                        // Любые другие непечатные символы → [XX]
+                        flushBuffer();
+                        const hex = (code & 0xFF).toString(16).padStart(2, '0').toUpperCase();
+                        result += `<span class="escape-sequence">[${hex}]</span>`;
+                    }
+                }
+
+                flushBuffer(); // не забываем остаток
+                return result;
             }
 
             getTimeString() {
@@ -2035,6 +2171,15 @@
                 }
             }
 
+            updateToggleButtons() {
+                this.elements.autoScrollBtn.dataset.active = this.autoScroll;
+                this.elements.showTimestampBtn.dataset.active = this.showTimestamp;
+                this.elements.showByteCountBtn.dataset.active = this.showByteCount;
+                this.elements.showNonPrintableBtn.dataset.active = this.showNonPrintable;
+                this.updateDisplayModeButton();
+
+            }
+
             toggleAutoScroll() {
                 this.autoScroll = !this.autoScroll;
                 this.elements.autoScrollBtn.dataset.active = this.autoScroll;
@@ -2045,6 +2190,20 @@
             toggleTimestamp() {
                 this.showTimestamp = !this.showTimestamp;
                 this.elements.showTimestampBtn.dataset.active = this.showTimestamp;
+                this.updateToggleButtons();
+                this.saveSettings();
+            }
+
+            toggleByteCount() {
+                this.showByteCount = !this.showByteCount;
+                this.elements.showByteCountBtn.dataset.active = this.showByteCount;
+                this.updateToggleButtons();
+                this.saveSettings();
+            }
+
+            toggleNonPrintable() {
+                this.showNonPrintable = !this.showNonPrintable;
+                this.elements.showNonPrintableBtn.dataset.active = this.showNonPrintable;
                 this.updateToggleButtons();
                 this.saveSettings();
             }
